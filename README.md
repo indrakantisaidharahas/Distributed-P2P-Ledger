@@ -7,9 +7,21 @@ make run
 ### Test through CURL
 ```bash
 curl -X POST localhost:8001/transaction -H "Content-Type: application/json" -d '{"id":"tx3","data":"test","timestamp":123}'
+
 ```
-
-
+```
+curl http://localhost:8001/transactions
+curl http://localhost:8002/transactions
+curl http://localhost:8003/transactions
+```
+```
+curl -X POST http://localhost:8001/mine
+```
+```
+curl http://localhost:8001/chain
+curl http://localhost:8002/chain
+curl http://localhost:8003/chain
+```
 
 ### Running API Tests
 
