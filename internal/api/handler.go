@@ -152,7 +152,19 @@ func (h *Handler) GetMempool(c *gin.Context) {
 	c.JSON(200, h.Gossip.GetTransactions())
 }
 
+// handler for recive block
+func (h *Handler) ReceiveBlock(c *gin.Context) {
+	var block models.Block
 
+	if err := c.ShouldBindJSON(&block); err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	h.Gossip.HandleIncomingBlock(block)
+
+	c.JSON(200, gin.H{"status": "block received"})
+}
 
 
 

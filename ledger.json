@@ -2,9 +2,9 @@
   {
     "index": 0,
     "data": [],
-    "timestamp": "2026-04-12T14:08:32.076418387+05:30",
+    "timestamp": 1775994395,
     "prev_hash": "",
-    "current_hash": "e974df681dc59d03c1be0aabd4da1d5e1dc2371d5422f66d40a11e93d117afac"
+    "current_hash": "6d372a6386a1ae75c6d7f3f3ac3d7f160a59b6046f108aa8ba296c888446a282"
   },
   {
     "index": 1,
@@ -13,15 +13,10 @@
         "id": "tx1",
         "data": "Alice pays Bob",
         "timestamp": 12345
-      },
-      {
-        "id": "tx2",
-        "data": "Bob pays Charlie",
-        "timestamp": 12346
       }
     ],
-    "timestamp": "2026-04-12T14:12:31.052031989+05:30",
-    "prev_hash": "e974df681dc59d03c1be0aabd4da1d5e1dc2371d5422f66d40a11e93d117afac",
-    "current_hash": "fee2c779485d098f4f79a5060d78fa56ab3a530b2f06d5225890d4b0693d81e4"
+    "timestamp": 1775994407,
+    "prev_hash": "6d372a6386a1ae75c6d7f3f3ac3d7f160a59b6046f108aa8ba296c888446a282",
+    "current_hash": "f0f9c97440a5cb5da078ecc5d581a360cf3bea41da03cb59d73d505373b3a3cd"
   }
 ]

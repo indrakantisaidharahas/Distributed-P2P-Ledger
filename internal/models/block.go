@@ -18,34 +18,46 @@ import (
 type Block struct {
 	Index       int       `json:"index"`
 	Transactions []Transaction    `json:"data"`
-	Timestamp   time.Time `json:"timestamp"`
+	Timestamp   int64 `json:"timestamp"`
 	PrevHash    string    `json:"prev_hash"`
 	CurrentHash string    `json:"current_hash"`
 
 }
 
+// func (b *Block) CalculateHash() string {
+
+// 	txBytes,_ := json.Marshal(b.Transactions)
+
+// 	record := fmt.Sprintf("%d%s%s%s",
+// 		b.Index,
+// 		string(txBytes),
+// 		b.Timestamp.String(),
+// 		b.PrevHash,
+// 	)
+
+// 	h := sha256.New()
+// 	h.Write([]byte(record))
+// 	return hex.EncodeToString(h.Sum(nil))
+// }
 func (b *Block) CalculateHash() string {
+	txBytes, _ := json.Marshal(b.Transactions)
 
-	txBytes,_ := json.Marshal(b.Transactions)
-
-	record := fmt.Sprintf("%d%s%s%s",
+	record := fmt.Sprintf("%d|%s|%d|%s",
 		b.Index,
 		string(txBytes),
-		b.Timestamp.String(),
+		b.Timestamp,
 		b.PrevHash,
 	)
 
-	h := sha256.New()
-	h.Write([]byte(record))
-	return hex.EncodeToString(h.Sum(nil))
+	h := sha256.Sum256([]byte(record))
+	return hex.EncodeToString(h[:])
 }
-
 
 func NewBlock(index int, txs []Transaction, prevHash string) *Block {
 	b:= &Block{
 		Index:        index,
 		Transactions: txs,
-		Timestamp:    time.Now(),
+		Timestamp:    time.Now().Unix(),
 		PrevHash:     prevHash,
 	}
 	b.CurrentHash = b.CalculateHash()

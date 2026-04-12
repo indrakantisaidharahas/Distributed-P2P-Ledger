@@ -339,7 +339,7 @@ func (g *GossipEngine) CreateBlock() {
 	block := models.Block{
 		Index:        last.Index + 1,
 		Transactions: txs,
-		Timestamp:    time.Now(),
+		Timestamp:    time.Now().Unix(),
 		PrevHash:     last.CurrentHash,
 	}
 
@@ -349,8 +349,127 @@ func (g *GossipEngine) CreateBlock() {
 		log.Println("block created", block.Index)
 		g.mempool.Clear()
 	}
-	//go g.broadcastBlock(block)
+	go g.broadcastBlock(&block)
 }
+
+//------------new function added 
+
+//v1
+
+// func (g *GossipEngine) broadcastBlock(block *models.Block) {
+// 	log.Println("broadcasting block", block.Index)
+
+// 	for _, peer := range g.peers {
+// 		go func(p string) {
+// 			jsonData, _ := json.Marshal(block)
+
+// 			resp, err := g.httpClient.Post(
+// 				p+"/newblock",
+// 				"application/json",
+// 				bytes.NewBuffer(jsonData),
+// 			)
+
+// 			if err != nil {
+// 				log.Println("error sending block to", p, err)
+// 				return
+// 			}
+// 			defer resp.Body.Close()
+
+// 			log.Println("sent block to", p, "status:", resp.StatusCode)
+
+// 		}(peer)
+// 	}
+// }
+
+func (g *GossipEngine) broadcastBlock(block *models.Block) {
+	log.Println("broadcasting block", block.Index)
+
+	peers := g.peers
+	rand.Shuffle(len(peers), func(i, j int) {
+		peers[i], peers[j] = peers[j], peers[i]
+	})
+
+	fanout := 2
+	if len(peers) < fanout {
+		fanout = len(peers)
+	}
+
+	for i := 0; i < fanout; i++ {
+		p := peers[i]
+
+		go func(p string) {
+			jsonData, _ := json.Marshal(block)
+
+			resp, err := g.httpClient.Post(
+				p+"/newblock",
+				"application/json",
+				bytes.NewBuffer(jsonData),
+			)
+
+			if err != nil {
+				log.Println("error sending block to", p, err)
+				return
+			}
+			defer resp.Body.Close()
+
+			log.Println("sent block to", p, "status:", resp.StatusCode)
+		}(p)
+	}
+}
+
+
+
+//----------new function added 
+func (g *GossipEngine) HandleIncomingBlock(block models.Block) {
+	last := g.ledger.LastBlock()
+
+	if block.PrevHash == last.CurrentHash &&
+		block.Index == last.Index+1 {
+
+		if g.ledger.AppendBlock(block) {
+			log.Println("block added from peer", block.Index)
+			g.mempool.Clear()
+			return
+		}
+		
+	}
+	log.Println(
+	"rejected block",
+	"blockIndex:", block.Index,
+	"lastIndex:", last.Index,
+	"expectedIndex:", last.Index+1,
+	"prevMatch:", block.PrevHash == last.CurrentHash,
+)
+	go g.SyncWithPeer()	
+}
+
+func (g *GossipEngine) SyncWithPeer() {
+	if len(g.peers) == 0 {
+		return
+	}
+
+	peer := g.peers[rand.Intn(len(g.peers))]
+
+	resp, err := g.httpClient.Get(peer + "/chain")
+	if err != nil {
+		log.Println("sync failed:", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	var theirChain []models.Block
+	if err := json.NewDecoder(resp.Body).Decode(&theirChain); err != nil {
+		return
+	}
+
+	if len(theirChain) > len(g.ledger.Chain) {
+		g.ledger.ReplaceChain(theirChain)
+		log.Println("chain replaced from peer")
+	}
+}
+
+
+
 
 
 

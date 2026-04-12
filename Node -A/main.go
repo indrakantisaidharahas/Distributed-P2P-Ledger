@@ -2,11 +2,11 @@ package main
 
 import (
 	"github.com/gin-gonic/gin"
-    "os"
+	"os"
+
 	"p2pledger/internal/api"
 	"p2pledger/internal/storage"
 	"p2pledger/Gossip_Engine"
-	"fmt"
 )
 
 func main() {
@@ -20,17 +20,26 @@ func main() {
 	nodeAddr := "http://localhost:" + port
 
 	router := gin.Default()
-    // init storage
-	store := storage.NewFileStorage("Node -A/ledger_" + port + ".json")
-    //neew addition 
-	gossipEngine,err := gossip.NewGossipEngine(peersFile, nodeAddr, store)// i need ot give peer directory by defininngalert!!! define 
-    fmt.Println(err)
-    // init handler
+
+	// storage (optional now)
+	store := storage.NewFileStorage("nodeA/ledger_" + port + ".json")
+
+	// gossip engine
+	gossipEngine, err := gossip.NewGossipEngine(peersFile, nodeAddr)
+	if err != nil {
+		panic(err)
+	}
+
+	// handler
 	handler := api.NewHandler(store, gossipEngine)
-    // routes
+
+	// routes
 	router.POST("/transaction", handler.AddTransaction)
 	router.GET("/transactions", handler.GetTransactions)
 	router.POST("/gossip", handler.GossipReceive)
+	router.POST("/mine", handler.MineBlock)
+	router.GET("/chain", handler.GetChain)
+	router.POST("/newblock", handler.ReceiveBlock)
 
 	router.Run(":" + port)
 }

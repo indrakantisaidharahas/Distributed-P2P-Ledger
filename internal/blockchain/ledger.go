@@ -5,6 +5,7 @@ import (
 	"os"
 	"sync"
 	"p2pledger/internal/models"
+	"log"
 
 )
 
@@ -22,6 +23,7 @@ func LoadLedger() *Ledger {
 	}
 	// genesis := models.NewBlock(0, "Genesis Block", "")
 	genesis := models.NewBlock(0, []models.Transaction{}, "")
+	
 	l.Chain = append(l.Chain, *genesis)
 	l.save()
 	return l
@@ -48,6 +50,7 @@ func (l *Ledger) AppendBlock(b models.Block) bool {
 		return false
 	}
 	if b.CalculateHash() != b.CurrentHash {
+		log.Println("hash mismatch", b.CalculateHash(), b.CurrentHash)
 		return false
 	}
 	l.Chain = append(l.Chain, b)
@@ -65,6 +68,7 @@ func (l *Ledger) ReplaceChain(newChain []models.Block) bool {
 	for i := 1; i < len(newChain); i++ {
 		if newChain[i].Index != newChain[i-1].Index+1 ||
 			newChain[i].PrevHash != newChain[i-1].CurrentHash {
+
 			return false
 		}
 		if newChain[i].CalculateHash() != newChain[i].CurrentHash {
