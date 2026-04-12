@@ -12,8 +12,9 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"p2pledger/internal/storage"
 	"p2pledger/internal/models"
+	"p2pledger/internal/mempool"
+	"p2pledger/internal/blockchain"
 
 )
 
@@ -39,10 +40,36 @@ type GossipEngine struct {
 	nodeAddr     string            // This node's own address (used only for logging)
 	seen         map[string]bool   // Tracks already processed transaction IDs
 	seenMu       sync.RWMutex      // Mutex for seen map (concurrent read/write)
-	transactions []models.Transaction     // All transactions this node has ever seen (for GET /Transactions)
-	txMu         sync.RWMutex      // Mutex for transactions slice
+
+
+//------------------------------------------------
+	//transactions []models.Transaction     // All transactions this node has ever seen (for GET /Transactions)
+    // goint to repalce trasaction wiht mempool 
+//-------------------------------------------------
+
+
+
+//-------new things that are to be added -----------
+    mempool *mempool.Mempool
+	 ledger  *ledger.Ledger
+
+//-------------------------------------------------
+
+
+     // ---------
+	//txMu         sync.RWMutex      // Mutex for transactions slice
+	// reove this too as we will not use trasaction anymore 
+
+	//---------
+
+
 	httpClient   *http.Client      // HTTP client with timeout
-	store storage.Storage         //<-----------------creating a storgae attribute 
+
+
+	// ------------
+	//store storage.Storage         //<-----------------creating a storgae attribute 
+	//for now i nees to remove this sas this will be handles in block side 
+	//------------
 }
 
 
@@ -56,7 +83,36 @@ type GossipEngine struct {
 //   - *GossipEngine: initialised engine
 //   - error: if file reading fails
 //<---------------need to add new attribute for storage 
-func NewGossipEngine(peersFile, nodeAddr string, store storage.Storage) (*GossipEngine, error) {
+
+
+// func NewGossipEngine(peersFile, nodeAddr string, store storage.Storage) (*GossipEngine, error) {
+// 	// Read the entire peers file (fine for small files; for large lists use bufio.Scanner)
+// 	data, err := os.ReadFile(peersFile)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("failed to read peers file: %w", err)
+// 	}
+
+// 	// Split file content into lines and trim whitespace
+// 	lines := strings.Split(strings.TrimSpace(string(data)), "\n")
+// 	peers := make([]string, 0, len(lines))
+// 	for _, line := range lines {
+// 		line = strings.TrimSpace(line)
+// 		if line == "" {
+// 			continue
+// 		}
+// 		peers = append(peers, line)
+// 	}
+
+// 	return &GossipEngine{
+// 		peers:        peers,
+// 		nodeAddr:     nodeAddr,
+// 		seen:         make(map[string]bool),
+// 		store:        store,//adding the new store thingy
+// 		transactions: []models.Transaction{},
+// 		httpClient:   &http.Client{Timeout: 5 * time.Second},
+// 	}, nil
+// }
+func NewGossipEngine(peersFile, nodeAddr string) (*GossipEngine, error) {
 	// Read the entire peers file (fine for small files; for large lists use bufio.Scanner)
 	data, err := os.ReadFile(peersFile)
 	if err != nil {
@@ -78,8 +134,9 @@ func NewGossipEngine(peersFile, nodeAddr string, store storage.Storage) (*Gossip
 		peers:        peers,
 		nodeAddr:     nodeAddr,
 		seen:         make(map[string]bool),
-		store:        store,//adding the new store thingy
-		transactions: []models.Transaction{},
+		mempool:  mempool.NewMempool(),
+		ledger:   ledger.LoadLedger(),
+	
 		httpClient:   &http.Client{Timeout: 5 * time.Second},
 	}, nil
 }
@@ -118,18 +175,32 @@ func (g *GossipEngine) isSeen(txID string) bool {
 }
 
 
+func (g *GossipEngine) GetTransactions() []models.Transaction {
+	return g.mempool.GetAll()
+}
+
+func (g *GossipEngine) GetChain() []models.Block {
+	return g.ledger.Chain
+}
+
+
+
+
+
+
 
 // markSeen records a transaction as seen and appends it to the local transactions list.
 // It acquires both write locks (seen and transactions) to ensure consistency.
 func (g *GossipEngine) markSeen(tx models.Transaction) {
 	g.seenMu.Lock()
 	defer g.seenMu.Unlock()
-	g.txMu.Lock()
-	defer g.txMu.Unlock()
+	//g.txMu.Lock()
+	//defer g.txMu.Unlock()
 	g.seen[tx.ID] = true
-	g.store.SaveTransaction(tx)//<------------------------------newly added
-	g.transactions = append(g.transactions, tx)
+	//g.store.SaveTransaction(tx)//<------------------------------newly added
+	//g.transactions = append(g.transactions, tx)
 }
+
 
 // Gossip is the main method that starts the gossip propagation.
 // It marks the transaction as seen (if new) and forwards it to 2 random peers.
@@ -140,6 +211,7 @@ func (g *GossipEngine) Gossip(tx models.Transaction) {
 		log.Printf("[%s] Gossip called but tx %s already seen – ignoring", g.nodeAddr, tx.ID)
 		return
 	}
+	g.mempool.Add(tx)
 	g.markSeen(tx)
 	log.Printf("[%s] Gossiping tx %s: %s", g.nodeAddr, tx.ID, tx.Data)
 
@@ -149,7 +221,6 @@ func (g *GossipEngine) Gossip(tx models.Transaction) {
 		go g.sendGossip(peerURL, tx)
 	}
 }
-
 // sendGossip performs the actual HTTP POST request to a single peer.
 // It is called asynchronously by Gossip.
 func (g *GossipEngine) sendGossip(peerURL string, tx models.Transaction) {
@@ -172,17 +243,55 @@ func (g *GossipEngine) sendGossip(peerURL string, tx models.Transaction) {
 // HandleIncoming processes a transaction received via the /gossip endpoint.
 // If the transaction is new, it marks it as seen and then forwards it further (gossip).
 // This implements the "if exists → ignore; else → forward" rule.
+
 func (g *GossipEngine) HandleIncoming(tx models.Transaction) {
 	if g.isSeen(tx.ID) {
 		log.Printf("[%s] Ignoring duplicate tx %s", g.nodeAddr, tx.ID)
 		return
 	}
+	g.mempool.Add(tx)//new line 
 	g.markSeen(tx)
+
 	log.Printf("[%s] Received new tx %s: %s (timestamp %d)", g.nodeAddr, tx.ID, tx.Data, tx.Timestamp)
 
 	// Forward to other peers asynchronously
 	go g.Gossip(tx)
 }
+
+
+func (g *GossipEngine) SubmitTransaction(tx models.Transaction) {
+	// so thhis is replacing work of handle incoming 
+	if g.mempool.Add(tx) {
+		log.Println("added tx", tx.ID)
+		go g.Gossip(tx)
+	}
+}
+// func NewGossipEngine(peers []string, nodeAddr string) *GossipEngine {
+// 	return &GossipEngine{
+// 		peers:    peers,
+// 		nodeAddr: nodeAddr,
+// 		mempool:  mempool.NewMempool(),
+// 		ledger:   blockchain.LoadLedger(),
+// 	}
+// }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -219,6 +328,30 @@ func (g *GossipEngine) gossipHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+func (g *GossipEngine) CreateBlock() {
+	txs := g.mempool.GetAll()
+	if len(txs) == 0 {
+		return
+	}
+
+	last := g.ledger.LastBlock()
+
+	block := models.Block{
+		Index:        last.Index + 1,
+		Transactions: txs,
+		Timestamp:    time.Now(),
+		PrevHash:     last.CurrentHash,
+	}
+
+	block.CurrentHash = block.CalculateHash()
+
+	if g.ledger.AppendBlock(block) {
+		log.Println("block created", block.Index)
+		g.mempool.Clear()
+	}
+	//go g.broadcastBlock(block)
+}
+
 
 
 //commetsn by me: call bakc function for gossip how to move this to /internals/api?
@@ -234,10 +367,10 @@ func (g *GossipEngine) getTransactionsHandler(w http.ResponseWriter, r *http.Req
 		http.Error(w, "Only GET allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	g.txMu.RLock()
-	defer g.txMu.RUnlock()
+	//g.txMu.RLock()
+	//defer g.txMu.RUnlock()
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(g.transactions)
+	json.NewEncoder(w).Encode(g.mempool.GetAll())
 }
 
 //coomments by sai:conciflcts wwiht mt /transaction ,should i edit in /internals/api?
