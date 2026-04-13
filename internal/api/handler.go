@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	gossip "p2pledger/Gossip_Engine"
+	"p2pledger/Gossip_Engine"
 	"p2pledger/internal/models"
 	"p2pledger/internal/storage"
 )
@@ -39,6 +39,7 @@ func (h *Handler) AddTransaction(c *gin.Context) {
 	}
 
 	exists, err := h.Store.TransactionExists(tx.ID)
+	h.Gossip.AddTransaction(tx)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

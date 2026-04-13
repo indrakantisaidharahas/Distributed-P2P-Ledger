@@ -105,6 +105,9 @@ func main() {
 	router.POST("/transaction", handler.AddTransaction)
 	router.GET("/transactions", handler.GetTransactions)
 	router.POST("/gossip", handler.GossipReceive)
+	router.POST("/mine", handler.MineBlock)
+	router.GET("/chain", handler.GetChain)
+	router.POST("/newblock", handler.ReceiveBlock)
 
 	// Bind on all interfaces for Docker networking.
 	if err := router.Run(fmt.Sprintf("0.0.0.0:%s", port)); err != nil {

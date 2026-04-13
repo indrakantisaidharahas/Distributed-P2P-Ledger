@@ -194,6 +194,7 @@ func (g *GossipEngine) GetChain() []models.Block {
 func (g *GossipEngine) CreateBlock() {
 	txs := g.mempool.GetAll()
 	if len(txs) == 0 {
+		log.Println("empty trasactions")
 		return
 	}
 
@@ -253,6 +254,7 @@ func (g *GossipEngine) HandleIncomingBlock(block models.Block) {
 		if g.ledger.AppendBlock(block) {
 			log.Println("block added from peer", block.Index)
 			g.mempool.Clear()
+			go g.broadcastBlock(&block)
 			return
 		}
 	}
@@ -265,6 +267,10 @@ func (g *GossipEngine) HandleIncomingBlock(block models.Block) {
 		"prevMatch:", block.PrevHash == last.CurrentHash,
 	)
 	go g.SyncWithPeer()
+}
+func (g *GossipEngine) AddTransaction(tx models.Transaction) {
+
+    g.mempool.Add(tx)
 }
 
 func (g *GossipEngine) SyncWithPeer() {

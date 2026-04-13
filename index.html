@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>P2P Ledger UI</title>
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        input, button { margin: 5px; padding: 8px; }
+        pre { background: #f4f4f4; padding: 10px; }
+    </style>
+</head>
+<body>
+
+<h2>🚀 P2P Ledger Demo</h2>
+
+<!-- Transaction -->
+<h3>Add Transaction</h3>
+<input id="txid" placeholder="ID">
+<input id="txdata" placeholder="Data">
+<button onclick="addTx()">Send</button>
+
+<!-- Mine -->
+<h3>Mine Block</h3>
+<button onclick="mine()">Mine Block</button>
+
+<!-- Chain -->
+<h3>View Chain</h3>
+<button onclick="getChain()">Refresh Chain</button>
+
+<pre id="output"></pre>
+
+<script>
+const BASE = "http://localhost:8081"; // change port if needed
+
+function addTx() {
+    fetch(BASE + "/transaction", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+            id: document.getElementById("txid").value,
+            data: document.getElementById("txdata").value,
+            timestamp: Date.now()
+        })
+    })
+    .then(res => res.json())
+    .then(data => show(data));
+}
+
+function mine() {
+    fetch(BASE + "/mine", { method: "POST" })
+    .then(res => res.json())
+    .then(data => show(data));
+}
+
+function getChain() {
+    fetch(BASE + "/chain")
+    .then(res => res.json())
+    .then(data => show(data));
+}
+
+function show(data) {
+    document.getElementById("output").textContent =
+        JSON.stringify(data, null, 2);
+}
+</script>
+
+</body>
+</html>
