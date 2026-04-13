@@ -282,6 +282,7 @@ func (g *GossipEngine) SyncWithPeer() {
 
 	var theirChain []models.Block
 	if err := json.NewDecoder(resp.Body).Decode(&theirChain); err != nil {
+		log.Println("sync decode failed from", peer, "error:", err)
 		return
 	}
 
