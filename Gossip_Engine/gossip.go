@@ -43,8 +43,6 @@ func NewGossipEngine(peersFile, nodeAddr string, store storage.Storage) (*Gossip
 		return nil, fmt.Errorf("failed to read peers file: %w", err)
 	}
 
-	rand.Seed(time.Now().UnixNano())
-
 	lines := strings.Split(strings.TrimSpace(string(data)), "\n")
 	peers := make([]string, 0, len(lines))
 	seenPeers := make(map[string]struct{}, len(lines))
@@ -217,6 +215,11 @@ func (g *GossipEngine) CreateBlock() {
 
 func (g *GossipEngine) broadcastBlock(block *models.Block) {
 	log.Println("broadcasting block", block.Index)
+	jsonData, err := json.Marshal(block)
+	if err != nil {
+		log.Println("failed to marshal block for broadcast", err)
+		return
+	}
 
 	peers := make([]string, len(g.peers))
 	copy(peers, g.peers)
@@ -232,7 +235,6 @@ func (g *GossipEngine) broadcastBlock(block *models.Block) {
 	for i := 0; i < fanout; i++ {
 		p := peers[i]
 		go func(peer string) {
-			jsonData, _ := json.Marshal(block)
 			resp, err := g.httpClient.Post(peer+"/newblock", "application/json", bytes.NewBuffer(jsonData))
 			if err != nil {
 				log.Println("error sending block to", peer, err)
