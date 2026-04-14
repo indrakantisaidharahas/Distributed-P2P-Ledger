@@ -23,7 +23,7 @@ curl http://localhost:8082/chain
 curl http://localhost:8083/chain
 ```
 
-### If You are re  running the containers after  delete the data folder to avoid clashes , there a small bug needed to be fixed later .Use the folowing command before rerunning 
+### If You are re  running the containers after stopping ,  delete the data folder to avoid clashes , there a small bug needed to be fixed later .Use the folowing command before rerunning 
 ```
 docker compose down -v 
 rm -rf data/*
