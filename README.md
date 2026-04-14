@@ -1,4 +1,4 @@
-### To run three peers use the following command 
+### To run 6 peers use the following command 
 
 ```bash
 docker compose up --build
@@ -6,7 +6,7 @@ docker compose up --build
 
 ### Test through CURL
 ```bash
-curl -X POST localhost:8001/transaction -H "Content-Type: application/json" -d '{"id":"tx3","data":"test","timestamp":123}'
+curl -X POST localhost:8081/transaction -H "Content-Type: application/json" -d '{"id":"tx3","data":"test","timestamp":123}'
 
 ```
 ```
