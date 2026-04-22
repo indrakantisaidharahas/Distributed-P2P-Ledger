@@ -63,7 +63,8 @@ package main
 import (
 	"fmt" 
 	"os" // for reading CLI args and env vars
-	gossip "p2pledger/Gossip_Engine" 
+     "github.com/gin-contrib/cors"
+	"p2pledger/Gossip_Engine" 
 	"p2pledger/internal/api" 
 	"p2pledger/internal/storage"
 
@@ -89,6 +90,7 @@ func main() {
 	ledgerFile := getArgOrEnv(4, "LEDGER_FILE", "node_a/ledger_"+port+".json")
 
 	router := gin.Default() 
+	router.Use(cors.Default())
 
 	store := storage.NewFileStorage(ledgerFile) // Each node has its own ledger file to avoid conflicts in a multi-node setup. 
 

@@ -4,32 +4,65 @@
     <title>P2P Ledger UI</title>
     <style>
         body { font-family: Arial; padding: 20px; }
-        input, button { margin: 5px; padding: 8px; }
-        pre { background: #f4f4f4; padding: 10px; }
+        input, button, select { margin: 5px; padding: 8px; }
+        pre { background: #f4f4f4; padding: 10px; max-height: 400px; overflow-y: auto; }
+        .status { margin-top: 10px; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <h2>🚀 P2P Ledger Demo</h2>
 
-<!-- Transaction -->
+<h3>Select Node</h3>
+<select id="nodeSelect" onchange="updateBase()">
+    <option value="8081">Node 1 (8081)</option>
+    <option value="8082">Node 2 (8082)</option>
+    <option value="8083">Node 3 (8083)</option>
+    <option value="8084">Node 4 (8084)</option>
+    <option value="8085">Node 5 (8085)</option>
+    <option value="8086">Node 6 (8086)</option>
+</select>
+
+<div class="status">
+    Current Node: <span id="currentNode">http://localhost:8081</span>
+</div>
+
+<hr>
+
 <h3>Add Transaction</h3>
 <input id="txid" placeholder="ID">
 <input id="txdata" placeholder="Data">
 <button onclick="addTx()">Send</button>
 
-<!-- Mine -->
 <h3>Mine Block</h3>
 <button onclick="mine()">Mine Block</button>
 
-<!-- Chain -->
 <h3>View Chain</h3>
 <button onclick="getChain()">Refresh Chain</button>
 
+<hr>
+
+<h3>Output</h3>
 <pre id="output"></pre>
 
 <script>
-const BASE = "http://localhost:8081"; // change port if needed
+let BASE = "http://localhost:8081";
+
+function updateBase() {
+    const port = document.getElementById("nodeSelect").value;
+    BASE = "http://localhost:" + port;
+    document.getElementById("currentNode").textContent = BASE;
+}
+
+function show(data) {
+    document.getElementById("output").textContent =
+        JSON.stringify(data, null, 2);
+}
+
+function showError(err) {
+    document.getElementById("output").textContent =
+        "ERROR:\n" + err;
+}
 
 function addTx() {
     fetch(BASE + "/transaction", {
@@ -42,40 +75,22 @@ function addTx() {
         })
     })
     .then(res => res.json())
-    .then(data => show(data));
+    .then(show)
+    .catch(err => showError(err));
 }
 
 function mine() {
     fetch(BASE + "/mine", { method: "POST" })
     .then(res => res.json())
-    .then(data => show(data));
+    .then(show)
+    .catch(err => showError(err));
 }
 
 function getChain() {
-    console.log("clicked");
-
     fetch(BASE + "/chain")
-    .then(res => {
-        console.log("status:", res.status);
-        return res.text(); // 👈 use text first
-    })
-    .then(data => {
-        console.log("raw:", data);
-        try {
-            const json = JSON.parse(data);
-            show(json);
-        } catch (e) {
-            console.error("JSON parse error:", e);
-        }
-    })
-    .catch(err => {
-        console.error("fetch error:", err);
-    });
-}
-
-function show(data) {
-    document.getElementById("output").textContent =
-        JSON.stringify(data, null, 2);
+    .then(res => res.json())
+    .then(show)
+    .catch(err => showError(err));
 }
 </script>
 
