@@ -183,8 +183,8 @@ func (g *GossipEngine) SubmitTransaction(tx models.Transaction) {
 	g.Gossip(tx)
 }
 
-func (g *GossipEngine) GetTransactions() []models.Transaction {
-	return g.mempool.GetAll()
+func (g *GossipEngine) GetTransactions() ([]models.Transaction,error) {
+	return g.mempool.GetAll(),nil
 }
 
 func (g *GossipEngine) GetChain() []models.Block {

@@ -3,13 +3,14 @@ package main
 import (
 	"github.com/gin-gonic/gin"
 	"os"
-
+     "github.com/gin-contrib/cors" 
 	"p2pledger/internal/api"
 	"p2pledger/internal/storage"
 	"p2pledger/Gossip_Engine"
 )
 
 func main() {
+
 	if len(os.Args) < 3 {
 		panic("Usage: go run main.go <port> <peers_file>")
 	}
@@ -20,7 +21,7 @@ func main() {
 	nodeAddr := "http://localhost:" + port
 
 	router := gin.Default()
-
+    router.Use(cors.Default())
 	// storage (optional now)
 	store := storage.NewFileStorage("nodeA/ledger_" + port + ".json")
 
@@ -40,6 +41,6 @@ func main() {
 	router.POST("/mine", handler.MineBlock)
 	router.GET("/chain", handler.GetChain)
 	router.POST("/newblock", handler.ReceiveBlock)
-
+    
 	router.Run(":" + port)
 }

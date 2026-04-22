@@ -52,9 +52,25 @@ function mine() {
 }
 
 function getChain() {
+    console.log("clicked");
+
     fetch(BASE + "/chain")
-    .then(res => res.json())
-    .then(data => show(data));
+    .then(res => {
+        console.log("status:", res.status);
+        return res.text(); // 👈 use text first
+    })
+    .then(data => {
+        console.log("raw:", data);
+        try {
+            const json = JSON.parse(data);
+            show(json);
+        } catch (e) {
+            console.error("JSON parse error:", e);
+        }
+    })
+    .catch(err => {
+        console.error("fetch error:", err);
+    });
 }
 
 function show(data) {

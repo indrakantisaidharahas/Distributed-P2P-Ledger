@@ -63,7 +63,7 @@ func (h *Handler) AddTransaction(c *gin.Context) {
 }
 
 func (h *Handler) GetTransactions(c *gin.Context) {
-	txs, err := h.Store.LoadTransactions()
+	txs, err := h.Gossip.GetTransactions()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -112,7 +112,12 @@ func (h *Handler) GetMempool(c *gin.Context) {
 		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "gossip engine not configured"})
 		return
 	}
-	c.JSON(http.StatusOK, h.Gossip.GetTransactions())
+	txs,err:=h.Gossip.GetTransactions()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK,txs)
 }
 
 func (h *Handler) ReceiveBlock(c *gin.Context) {
