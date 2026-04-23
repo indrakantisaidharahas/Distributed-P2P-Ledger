@@ -59,16 +59,26 @@ func NewGossipEngine(peersFile, nodeAddr string, store storage.Storage) (*Gossip
 		peers = append(peers, peer)
 	}
 
-	return &GossipEngine{
-		peers:      peers,
-		nodeAddr:   nodeAddr,
-		seen:       make(map[string]bool),
-		httpClient: &http.Client{Timeout: 5 * time.Second},
-		store:      store,
-		fanout:     defaultFanout,
-		mempool:    mempool.NewMempool(),
-		ledger:     ledger.LoadLedger(),
-	}, nil
+	engine := &GossipEngine{
+    peers:      peers,
+    nodeAddr:   nodeAddr,
+    seen:       make(map[string]bool),
+    httpClient: &http.Client{Timeout: 5 * time.Second},
+    store:      store,
+    fanout:     defaultFanout,
+    mempool:    mempool.NewMempool(),
+    ledger:     ledger.LoadLedger(),
+}
+
+// 🔥 ADD THIS HERE
+go func() {
+    for {
+        time.Sleep(3 * time.Second)
+        engine.SyncWithPeer()
+    }
+}()
+
+return engine, nil
 }
 
 func (g *GossipEngine) selectRandomPeers(n int) []string {
@@ -278,22 +288,22 @@ func (g *GossipEngine) SyncWithPeer() {
 		return
 	}
 
-	peer := g.peers[rand.Intn(len(g.peers))]
-	resp, err := g.httpClient.Get(peer + "/chain")
-	if err != nil {
-		log.Println("sync failed:", err)
-		return
-	}
-	defer resp.Body.Close()
+	for _, peer := range g.peers {
+    resp, err := g.httpClient.Get(peer + "/chain")
+    if err != nil {
+        continue
+    }
 
-	var theirChain []models.Block
-	if err := json.NewDecoder(resp.Body).Decode(&theirChain); err != nil {
-		log.Println("sync decode failed from", peer, "error:", err)
-		return
-	}
+    var theirChain []models.Block
+    if err := json.NewDecoder(resp.Body).Decode(&theirChain); err != nil {
+        resp.Body.Close()
+        continue
+    }
+    resp.Body.Close()
 
-	if len(theirChain) > len(g.ledger.Chain) {
-		g.ledger.ReplaceChain(theirChain)
-		log.Println("chain replaced from peer")
-	}
+    if len(theirChain) > len(g.ledger.Chain) {
+        g.ledger.ReplaceChain(theirChain)
+        log.Println("chain replaced from peer:", peer)
+    }
+}
 }
