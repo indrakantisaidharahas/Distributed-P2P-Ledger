@@ -1,14 +1,34 @@
-### To run three peers use the following command 
+### To run 6 peers use the following command 
 
 ```bash
-make run
+docker compose up --build
 ```
 
 ### Test through CURL
 ```bash
-curl -X POST localhost:8001/transaction -H "Content-Type: application/json" -d '{"id":"tx3","data":"test","timestamp":123}'
+curl -X POST localhost:8081/transaction -H "Content-Type: application/json" -d '{"id":"tx3","data":"test","timestamp":123}'
+
+```
+```
+curl http://localhost:8081/transactions
+curl http://localhost:8082/transactions
+curl http://localhost:8083/transactions
+```
+```
+curl -X POST http://localhost:8081/mine
+```
+```
+curl http://localhost:8081/chain
+curl http://localhost:8082/chain
+curl http://localhost:8083/chain
 ```
 
+### If You are re  running the containers after stopping ,  delete the data folder to avoid clashes , there a small bug needed to be fixed later .Use the folowing command before rerunning 
+```
+docker compose down -v 
+rm -rf data/*
+docker compose up --build
+``` 
 
 
 ### Running API Tests
